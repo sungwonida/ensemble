@@ -8,7 +8,7 @@ import json
 import cv2
 import torch
 import numpy as np
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from detectron2.structures import Boxes, Instances
 
 
@@ -99,7 +99,10 @@ class COCOStruct(BetterStructOutput):
 
 
 class COCODetectionEnsemble:
-    """ Make an ensemble from outputs of object detection models."""
+    """ Make an ensemble from outputs of object detection models.
+
+        Gets its source from instance of BetterStructOutput.
+    """
 
     def __init__(self,
                  score_thresh: float=0.0,
@@ -109,12 +112,12 @@ class COCODetectionEnsemble:
         self.iou_thresh = iou_thresh
         self.weights = np.array(weights) if weights else None
 
-        
-    def __call__(self, dets):
+
+    def __call__(self, dets: Dict) -> Dict:
         return self.ensemble(dets)
 
 
-    def ensemble_category(self, dets_category):
+    def ensemble_category(self, dets_category: Dict) -> Dict:
         ndets = len(dets_category.keys())
         out = {'pred_boxes': [], 'scores': []}
         used = set()
@@ -219,7 +222,7 @@ class COCODetectionEnsemble:
         return out
 
 
-    def ensemble_image(self, dets_image):
+    def ensemble_image(self, dets_image: Dict) -> Dict:
         out = {'pred_boxes': [], 'scores': [], 'pred_classes': []}
 
         for cat in dets_image.keys():
@@ -238,7 +241,7 @@ class COCODetectionEnsemble:
         return out
 
 
-    def ensemble(self, dets):
+    def ensemble(self, dets: Dict) -> Dict:
         out = {}
 
         for image_id in dets.keys():
@@ -288,7 +291,7 @@ class Ensemble:
 
         return ensemble
 
-    
+
 def calculate_iou(box1, box2):
     x11, y11, w1, h1 = box1
     x21, y21, w2, h2 = box2
@@ -310,28 +313,8 @@ def calculate_iou(box1, box2):
 
 
 if __name__ == '__main__':
-    # History
-    # 1) DC5_1x + FPN_1x = 36.662370184723706 [1.0, 1.0]
-    # 2) DC5_1x + FPN_1x + FPN_3x = 38.25519882553772 [1.0, 1.0, 1.0]
-    # 3) DC5_1x + FPN_1x + FPN_3x = 38.55561497655924 [1.0, 1.0, 2.0]
-    # 4) DC5_1x + FPN_1x + FPN_3x = 38.268660518169476 [35.026, 34.353, 36.667]
-    # 5) DC5_1x + FPN_1x + FPN_3x = 38.305887718189155 [35.026**2, 34.353**2, 36.667**2]
-    # 6) DC5_1x + FPN_1x + FPN_3x = 38.65496386992764 [35.026**2, 34.353**2, (36.667*2)**2]
-    # 7) DC5_1x + FPN_1x + FPN_3x = 38.61288520614146 [(35.026*2)**2, (34.353*1)**2, (36.667*3)**2]
-    # 8) DC5_1x + FPN_1x + FPN_3x = 38.4974638306501 [(35.026*4)**2, (34.353*1)**2, (36.667*9)**2]
-    # 9) DC5_1x + FPN_1x + FPN_3x = 38.4600080550775 [(35.026*np.exp(2))**2, (34.353*np.exp(1))**2, (36.667*np.exp(3))**2]
-    #10) DC5_1x + FPN_1x + FPN_3x = 38.11247052143885 [(35.026*np.exp(4))**2, (34.353*np.exp(1))**2, (36.667*np.exp(9))**2]
-    #11) DC5_1x + FPN_1x + FPN_3x = 38.52695611483604 [35.026*2, 34.353*1, 36.667*3]
-    #12) DC5_1x + FPN_1x + FPN_3x = 38.55491557438586 [35.026**2, 34.353**2, (36.667*3)**2]
-
-    # Development
-    # 2) DC5_1x + FPN_1x + FPN_3x = 38.25519882553772 [1.0, 1.0, 1.0]
-    # 4) DC5_1x + FPN_1x + FPN_3x = 38.268660518169476 [35.026, 34.353, 36.667]
-    # 5) DC5_1x + FPN_1x + FPN_3x = 38.305887718189155 [35.026**2, 34.353**2, 36.667**2]
-    # 7) DC5_1x + FPN_1x + FPN_3x = 38.61288520614146 [(35.026*2)**2, (34.353*1)**2, (36.667*3)**2]
-    
-    det_paths = ['datasets/coco/coco_instances_results_faster_rcnn_R_50_DC5_1x.json', 
-                 'datasets/coco/coco_instances_results_faster_rcnn_R_50_FPN_1x.json', 
+    det_paths = ['datasets/coco/coco_instances_results_faster_rcnn_R_50_DC5_1x.json',
+                 'datasets/coco/coco_instances_results_faster_rcnn_R_50_FPN_1x.json',
                  'datasets/coco/coco_instances_results_faster_rcnn_R_50_FPN_3x.json',]
 
     weights = [(35.026*2)**2, (34.353*1)**2, (36.667*3)**2]
@@ -342,7 +325,6 @@ if __name__ == '__main__':
             dets.append(json.load(f))
 
     ret = Ensemble(iou_thresh=0.1, weights=weights).ensemble(dets)
-    # print(ret[139])
     save_path = 'ensemble_results.json'
     Ensemble.save(ret, save_path)
     print(f"saved to {save_path}")
