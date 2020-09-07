@@ -7,7 +7,7 @@ The idea is used for ensembling the boxes that have same `image_id` and `categor
 
 ## Test
 
-The test has been conducted using COCO 2017 val dataset and Detectron2.  
+The test has been conducted using COCO 2017 val dataset and [Detectron2](https://github.com/facebookresearch/detectron2).  
 In order to reproduce what I've got during the test, you can follow the below.  
 
 ### 1. Prepare conda environment
@@ -21,6 +21,8 @@ or Windows (this version utilizes the GPU)
 ``` shell
 $ conda env create -f environment_win32.yml
 ```
+
+When having any installation issue with Detectron2 please followed the instruction [here](https://github.com/facebookresearch/detectron2/blob/master/INSTALL.md).
 
 Activate the environment.
 ``` shell
